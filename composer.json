@@ -1,0 +1,20 @@
+{
+    "name": "kolgaev/test-work",
+    "description": "Test work by Kolgaev Dmitriy",
+    "authors": [
+        {
+            "name": "Dimanok1989",
+            "email": "kolgaev@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/routing": "^5.2",
+        "symfony/http-foundation": "^5.2",
+        "illuminate/database": "^8.40"
+    },
+    "autoload": {
+        "psr-4": {
+            "Kolgaev\\": "src/"
+        }
+    }
+}
