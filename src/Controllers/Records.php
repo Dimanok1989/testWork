@@ -105,17 +105,22 @@ class Records extends Controller {
 
         if ($search) {
 
-            $phone = preg_replace('/[^0-9]/i', '', $search);
-
-            $data = $data->where(function($query) use ($search, $phone) {
+            $data = $data->where(function($query) use ($search) {
+                
                 $query->where('name', 'LIKE', "%{$search}%")
-                    ->orWhere('phone', 'LIKE', "%{$phone}%")
                     ->orWhere('email', 'LIKE', "%{$search}%");
+
+                if ($phone = preg_replace('/[^0-9]/i', '', $search))
+                    $query->orWhere('phone', 'LIKE', "%{$phone}%");
+
             });
 
         }
 
-        $data = $data->orderBy('id', 'DESC')->offset($offset)->limit($limit)->get();
+        $data = $data->orderBy('id', 'DESC')
+        ->offset($offset)
+        ->limit($limit)
+        ->get();
 
         foreach ($data as $row) {
 
@@ -129,7 +134,6 @@ class Records extends Controller {
         return Response::json([
             'records' => $records ?? [],
             'last' => $last,
-            $offset,
             'next' => $next,
         ]);
 

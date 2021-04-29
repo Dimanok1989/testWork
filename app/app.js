@@ -80,8 +80,6 @@ function App() {
             },
             success: data => {
 
-                this.page = data.next;
-
                 data.records.forEach(row => {
                     $('#records-rows').append(this.getHutmRecordRow(row));
                 });
@@ -92,8 +90,10 @@ function App() {
 
                 if (data.next > data.last) {
                     this.endRecords = true;
-                    $('#records-rows').append(`<div class="text-center text-muted" id="end-rows-message"><small>Это все записи!</small></div>`);
+                    $('#records-rows').append(`<div class="text-center text-muted my-3" id="end-rows-message"><small>Это все записи!</small></div>`);
                 }
+
+                this.page = data.next;
 
             },
             error: error => {
@@ -109,18 +109,25 @@ function App() {
 
     this.getHutmRecordRow = row => {
 
+        let word = $('#search-word').val();
+        let regexp = new RegExp(word, 'ig');
+
+        let name = String(row.name).replace(regexp, `<span style="background: #3fff00; color: #000; border-radius: 3px;">${word}</span>`);
+        let phone = String(row.phone).replace(regexp, `<span style="background: #3fff00; color: #000; border-radius: 3px;">${word}</span>`);
+        let email = String(row.email).replace(regexp, `<span style="background: #3fff00; color: #000; border-radius: 3px;">${word}</span>`);
+
         return `<div class="card px-3 py-2 my-2">
             <div class="d-flex align-items-center justify-content-between">
                 <b class="mb-0">
                     <span>#${row.id}</span>
-                    <span>${row.name}</span>
+                    <span>${name}</span>
                 </b>
                 <small>${row.date}</small>
             </div>
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <div>тел. ${row.phone}</div>
-                    <div>${row.email}</div>
+                    <div>тел. ${phone}</div>
+                    <div>${email}</div>
                 </div>
                 <button class="btn btn-danger btn-sm">Удалить</div>
             </div>
@@ -144,7 +151,7 @@ function App() {
     this.search = () => {
 
         let search = $('#search-word').val();
-        
+
         this.page = 1;
         this.endRecords = false;
 
