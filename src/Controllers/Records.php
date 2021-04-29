@@ -2,36 +2,46 @@
 
 namespace Kolgaev\Controllers;
 
+use Kolgaev\Controller;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Kolgaev\Response;
 
 use Kolgaev\Models\Record;
 
-class Records {
+class Records extends Controller {
 
     /**
      * Создание новой записи
      * 
      * @param Symfony\Component\HttpFoundation\Request $request
-     * @return Symfony\Component\HttpFoundation\JsonResponse
+     * @return Kolgaev\Response
      */
     public static function addRecord(Request $request) {
 
         $errors = [];
 
         if (!$request->get('name'))
-            $errors[] = ['name' => "name", 'message' => "Укажите имя"];
+            $errors[] = ['name' => "name", 'message' => "Введите имя клиента"];
 
-        if (!$request->get('phone'))
-            $errors[] = ['name' => "phone", 'message' => "Укажите номер телефона"];
+        $phone = $request->get('phone');
+
+        if (!$phone)
+            $errors[] = ['name' => "phone", 'message' => "Введите номер телефона клиента"];
+        elseif (!$phone = parent::checkPhone($phone, false))
+            $errors[] = ['name' => "phone", 'message' => "Пожалуйста, укажите правильный номер телефона"];
+        
+        if (Record::where('phone', $phone)->count())
+            $errors[] = ['name' => "phone", 'message' => "Этот номер телефона уже имеется в записях"];
             
         if (!$request->get('email'))
-            $errors[] = ['name' => "email", 'message' => "Укажите email"];
+            $errors[] = ['name' => "email", 'message' => "Введите адрес электронной почты клиента"];
         else if (!filter_var($request->get('email'), FILTER_VALIDATE_EMAIL))
-            $errors[] = ['name' => "email", 'message' => "Email указан неверно"];
+            $errors[] = ['name' => "email", 'message' => "Пожалуйста, укажите правильный email адрес"];
+        elseif (Record::where('email', $request->get('email'))->count())
+            $errors[] = ['name' => "email", 'message' => "Этот адрес почты уже имеется в записях"];
 
         if ($errors) {
-            return new JsonResponse([
+            return Response::json([
                 'message' => "Данные заполнены неверно",
                 'errors' => $errors,
             ], 400);
@@ -39,11 +49,17 @@ class Records {
 
         $record = Record::create([
             'name' => $request->get('name'),
-            'phone' => $request->get('phone'),
+            'phone' => $phone,
             'email' => $request->get('email'),
         ]);
 
-        return new JsonResponse($record);
+        $record->phone = parent::checkPhone($phone, false);
+
+        return Response::json([
+            'message' => "Новая запись сохранена. Клиент {$record->name}, тел. {$record->phone}, email {$record->email}",
+            'record' => $record,
+            'count' => Record::count(),
+        ]);
 
     }
 
@@ -51,19 +67,71 @@ class Records {
      * Удаление записи
      * 
      * @param Symfony\Component\HttpFoundation\Request $request
-     * @return Symfony\Component\HttpFoundation\JsonResponse
+     * @return Kolgaev\Response
      */
     public static function dropRecord(Request $request) {
 
         if (!$row = Record::find($request->get('id'))) {
-            return new JsonResponse([
+            return Response::json([
                 'message' => "Запись не найдена, возможно она была удалена",
             ], 400);
         }
 
         $row->delete();
 
-        return new JsonResponse(['message' => "Запись удалена"]);
+        return Response::json(['message' => "Запись удалена"]);
+
+    }
+
+    /**
+     * Вывод записей
+     * 
+     * @param Symfony\Component\HttpFoundation\Request $request
+     * @return Kolgaev\Response
+     */
+    public static function showRecords(Request $request) {
+
+        $limit = 20;
+        $page = $request->get('page') ?? 1;
+        $offset = $page > 1 ? (($limit * $page) - $limit) : 0;
+
+        $count = Record::count();
+        $last = ceil($count / $limit);
+        $next = $page + 1;
+
+        $search = $request->get('search');
+
+        $data = new Record;
+
+        if ($search) {
+
+            $phone = preg_replace('/[^0-9]/i', '', $search);
+
+            $data = $data->where(function($query) use ($search, $phone) {
+                $query->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('phone', 'LIKE', "%{$phone}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+
+        }
+
+        $data = $data->orderBy('id', 'DESC')->offset($offset)->limit($limit)->get();
+
+        foreach ($data as $row) {
+
+            $row->date = date("d.m.Y H:i", strtotime($row->created_at));
+            $row->phone = parent::checkPhone($row->phone, false);
+
+            $records[] = $row;
+
+        }
+
+        return Response::json([
+            'records' => $records ?? [],
+            'last' => $last,
+            $offset,
+            'next' => $next,
+        ]);
 
     }
 
