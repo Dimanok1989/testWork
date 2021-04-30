@@ -1,0 +1,290 @@
+<?php
+
+$host = null;
+$host_default = "127.0.0.1";
+$port = null;
+$port_default = "3306";
+$database = null;
+$database_default = "test";
+$username = null;
+$username_default = "root";
+$password = null;
+$password_default = "";
+
+$update = false;
+$update_line = "create";
+
+$stdin = fopen("php://stdin", "r");
+
+if (!file_exists(__DIR__ . "/.ini")) {
+    echo "Первоначальная настройка проекта\n";
+}
+else {
+
+    echo "Обновление настроек\n";
+
+    $config = parse_ini_file(__DIR__ . "/.ini", true);
+
+    while (!$update) {
+
+        echo "Текущий файл \".ini\" будет удален. \nЖелаете обновить настройки БД? (y/Y/n/N) [Y] ";
+    
+        $line_update = trim(fgets(STDIN));
+    
+        if (in_array($line_update, ['y', 'Y', 'n', 'N', ''])) {
+
+            if (in_array($line_update, ['n', 'N'])) {
+                $host = $config['database']['host'];
+                $port = $config['database']['port'];
+                $database = $config['database']['database'];
+                $username = $config['database']['username'];
+                $password = $config['database']['password'];
+                $update_line = "N";
+            }
+            else {
+                $host_default = $config['database']['host'];
+                $port_default = $config['database']['port'];
+                $database_default = $config['database']['database'];
+                $username_default = $config['database']['username'];
+                $password_default = $config['database']['password'];
+                $update_line = "Y";
+            }
+
+            $update = true;
+
+        }
+    
+    }
+
+    echo "\n";
+
+}
+
+
+while (!$host) {
+
+    echo "Введите адрес сервера БД: [{$host_default}] ";
+
+    $line_host = trim(fgets(STDIN));
+
+    $host = $line_host ? $line_host : $host_default;
+
+    echo $host;
+    echo "\n";
+
+}
+
+
+while (!$port) {
+
+    echo "Введите порт БД: [{$port_default}] ";
+
+    $line_port = trim(fgets(STDIN));
+
+    $port = $line_port ? $line_port : $port_default;
+
+    echo $port;
+    echo "\n";
+
+}
+
+while (!$database) {
+
+    echo "Введите имя БД: [{$database_default}] ";
+
+    $line_database = trim(fgets(STDIN));
+
+    $database = $line_database ? $line_database : $database_default;
+
+    echo $database;
+    echo "\n";
+
+}
+
+while (!$username) {
+
+    echo "Введите логин БД: [{$username_default}] ";
+
+    $line_username = trim(fgets(STDIN));
+
+    $username = $line_username ? $line_username : $username_default;
+
+    echo $username;
+    echo "\n";
+
+}
+
+while (!$password) {
+
+    echo "Введите пароль БД: [{$password_default}] ";
+
+    $line_password = trim(fgets(STDIN));
+
+    $password = $line_password ? $line_password : $password_default;
+
+    echo $password;
+    echo "\n";
+
+}
+
+if ($update_line == "Y") {
+    unlink(__DIR__ . "/.ini");
+}
+
+if ($update_line == "Y" || $update_line == "create") {
+
+    $fp = fopen(__DIR__ . "/.ini", "w");
+
+    $text = "[database]\n";
+    $text .= "\n";
+    $text .= "host='$host'\n";
+    $text .= "port='$port'\n";
+    $text .= "database='$database'\n";
+    $text .= "username='$username'\n";
+    $text .= "password='$password'\n";
+ 
+    fwrite($fp, $text);
+     
+    fclose($fp);
+
+    echo "\nФайл конфигурации сохранен\n\n";
+
+}
+
+$create_table = false;
+$crete = "Y";
+
+while (!$create_table) {
+
+    echo "Хотите создать таблицу в БД: (y/Y/n/N) [Y] ";
+
+    $line_update = trim(fgets(STDIN));
+    
+    if (in_array($line_update, ['y', 'Y', 'n', 'N', ''])) {
+
+        if (in_array($line_update, ['n', 'N'])) {
+            $crete = "N";
+        }
+        
+        $create_table = true;
+
+    }
+
+    echo "\n";
+
+}
+
+if ($crete == "Y") {
+
+    echo "\n";
+
+    $continue = false;
+    $create_table = false;
+
+    while (!$continue) {
+
+        echo "Сейчас будут созданы необходимые таблицы в Вашей базе данных.\nУбедитесь, что база данных \"$database\" существует и нажмите любую кнопку для продолжения [] ";
+
+        $line_update = trim(fgets(STDIN));
+        
+        if ($line_update) {
+            $create_table = false;
+        }
+        else {
+            $create_table = true;
+        }
+
+        $continue = true;
+
+    }
+
+    if ($create_table) {
+
+        require __DIR__ . "/vendor/autoload.php";
+
+        define("__CONFIG", parse_ini_file(__DIR__ . "/.ini", true));
+        require __DIR__ . "/config/database.php";
+
+        if (!$database->schema()->hasTable('records')) {
+            $database->schema()->create('records', function ($table) {
+                $table->increments('id');
+                $table->string('name', 250)->nullable()->comment('Имя клиента');
+                $table->string('email', 250)->nullable()->comment('Email клиента');
+                $table->string('phone', 11)->nullable()->comment('Телефон клиента');
+                $table->timestamps();
+                $table->softDeletes();
+            });
+            echo "Таблица records создана\n";
+        }
+        else {
+            echo "Таблица records уже имеется\n";
+        }       
+
+        $continue = false;
+        $create_rows = false;
+
+        while (!$continue) {
+
+            echo "\nЗаполнить таблицу демонстрационными данными? (будет создано несколько строк) (y/Y/n/N) [N] ";
+
+            $line_update = trim(fgets(STDIN));
+
+            if (in_array($line_update, ['y', 'Y', 'n', 'N', ''])) {
+
+                if (in_array($line_update, ['y', 'Y'])) {
+                    $create_rows = true;
+                }
+                else {
+                    $create_rows = true;
+                }
+        
+            }
+
+            $continue = true;
+
+        }
+
+        if ($create_rows) {
+
+            $datas = [
+                [
+                    'name' => "Алевтина Ксенофонтова",
+                    'email' => "xen@ld.ru",
+                    'phone' => "80009999999"
+                ],
+                [
+                    'name' => "Антон Валерьевич",
+                    'email' => "av@gg.su",
+                    'phone' => "80009876543"
+                ],
+                [
+                    'name' => "Иванов Иван Иванович",
+                    'email' => "gr@kmail.eu",
+                    'phone' => "80005558822"
+                ],
+                [
+                    'name' => "Евлампий Пшиштович",
+                    'email' => "psh@gg.ru",
+                    'phone' => "80002361002"
+                ],
+                [
+                    'name' => "Варфоломей Гергиевич",
+                    'email' => "gera@22.ru",
+                    'phone' => "80001002031"
+                ]
+            ];
+
+            foreach ($datas as $row) {
+                $create = \Kolgaev\Models\Record::create($row);
+                echo "Создана строка id#{$create->id}\n";
+            }
+
+        }
+
+    }
+
+}
+
+echo "Настройка завершена\n\n";
+echo "Теперь выполните команду, чтобы запустить сервер:\n\n";
+echo "php -S 127.0.0.1:8888 -t app\n\n";

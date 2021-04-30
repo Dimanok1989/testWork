@@ -14,4 +14,5 @@ $database->addConnection([
     'collation' => "utf8_unicode_ci",
 ]);
 
+$database->setAsGlobal();
 $database->bootEloquent();

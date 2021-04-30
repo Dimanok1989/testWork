@@ -1,7 +1,13 @@
 <?php
 
-if (!file_exists(__DIR__ . "/.ini"))
-    copy(__DIR__ . "/.ini.example", __DIR__ . "/.ini");
+if (!file_exists(__DIR__ . "/.ini")) {
+    require __DIR__ . "/views/errors/noini.php";
+    die();
+}
+
+if (!file_exists(__DIR__ . "/cache")) {
+    mkdir(__DIR__ . "/cache", 0777, true);
+}
 
 require __DIR__ . "/vendor/autoload.php";
 

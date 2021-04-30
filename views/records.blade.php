@@ -4,6 +4,8 @@
 
 @section('content')
 
+<div id="record-content">
+
     <div class="d-flex justify-content-center align-items-center mt-4 mb-3">
         <h4 class="text-center mb-0">Все записи - <span id="count-records">{{ $records ?? 0 }}</span></h4>
         <span class="px-2"></span>
@@ -20,6 +22,9 @@
     <div class="text-center py-2" id="loading-rows">
         <div class="spinner-grow spinner-grow-sm text-primary" role="status"></div>
     </div>
+
+</div>
+
 @endsection
 
 @section('script')
